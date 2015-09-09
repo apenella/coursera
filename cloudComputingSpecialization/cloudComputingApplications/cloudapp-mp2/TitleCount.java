@@ -84,14 +84,27 @@ public class TitleCount extends Configured implements Tool {
 
         @Override
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-            // TODO
+            // TODO: Aleix Penella
+		Text word = new Text();
+		IntWritable one = new IntWritable(1);
+		StringTokenizer itr = new StringTokenizer(value.toString(),delimiters);
+
+           	while (itr.hasMoreTokens()) {
+			word.set(itr.nextToken());	
+                	context.write(word,one);
+            	}
         }
     }
 
     public static class TitleCountReduce extends Reducer<Text, IntWritable, Text, IntWritable> {
         @Override
         public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-            // TODO
+            // TODO: Aleix Penella
+		int sum = 0;
+		for ( IntWritable iw: values ){
+			sum += iw.get(); 
+		}
+		context.write(key, new IntWritable(sum));		
         }
     }
 }
