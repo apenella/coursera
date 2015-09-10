@@ -68,6 +68,9 @@ public class TitleCount extends Configured implements Tool {
     public static class TitleCountMap extends Mapper<Object, Text, Text, IntWritable> {
         List<String> stopWords;
         String delimiters;
+	
+	//Aleix Penella: word
+	Text word = new Text();
 
         @Override
         protected void setup(Context context) throws IOException,InterruptedException {
@@ -85,15 +88,24 @@ public class TitleCount extends Configured implements Tool {
         @Override
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             // TODO: Aleix Penella
-		Text word = new Text();
+		String token = new String();
 		IntWritable one = new IntWritable(1);
 		StringTokenizer itr = new StringTokenizer(value.toString(),delimiters);
-
+	
+		// iterate for each title token
            	while (itr.hasMoreTokens()) {
-			word.set(itr.nextToken());	
-                	context.write(word,one);
+			//prepare the token to be used
+			token = itr.nextToken().toLowerCase().trim();
+			//if the token does not set as a stop word, it will be set as a word
+			if (!this.stopWords.contains((Object)token)) {
+				word.set(token);	
+                		context.write(word,one);
+			}				
             	}
+
         }
+
+	// Methods Aleix Penella
     }
 
     public static class TitleCountReduce extends Reducer<Text, IntWritable, Text, IntWritable> {

@@ -9,4 +9,4 @@ jar:MP1
 MP1:
 	$(JAVAC) -d . MP1.java
 clean:
-	rm *.class *.jar
+	rm -f *.class *.jar
