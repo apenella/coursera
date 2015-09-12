@@ -1,8 +1,9 @@
-JAVA=java
+JAVA=javaDOOP_CLASSPATH
 JAVAC=javac
 JAR=jar
 USERID=11239605
 HADOOP=hadoop
+
 
 all: hadoop
 
@@ -15,7 +16,7 @@ comp: cp
 	mkdir -p $(EXERCISE)
 	$(HADOOP) com.sun.tools.javac.Main $(EXERCISE).java -d $(EXERCISE) 
 cp:
-	export HADOOP_CLASSPATH=$JAVA_HOME/lib/tools.jar
+	export HADOOP_CLASSPATH=$(JAVA_HOME)/lib/tools.jar
 clean:
 	rm -f $(EXERCISE)/*  $(EXERCISE).jar
 	hadoop fs -rm -r $(OUTPUT)	

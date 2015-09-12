@@ -111,6 +111,9 @@ public class TopTitleStatistics extends Configured implements Tool {
         List<String> stopWords;
         String delimiters;
 
+	//Aleix Penella: word
+	Text word = new Text();
+
         @Override
         protected void setup(Context context) throws IOException,InterruptedException {
 
@@ -125,21 +128,42 @@ public class TopTitleStatistics extends Configured implements Tool {
 
 
         @Override
-        public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-            // TODO
-        }
+	public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+       		// TODO: Aleix Penella
+		String token = new String();
+		IntWritable one = new IntWritable(1);
+		StringTokenizer itr = new StringTokenizer(value.toString(),this.delimiters);
+	
+		// iterate for each title token
+           	while (itr.hasMoreTokens()) {
+			//prepare the token to be used
+			token = itr.nextToken().toLowerCase().trim();
+			//if the token does not set as a stop word, it will be set as a word
+			if (!this.stopWords.contains((Object)token)) {
+				word.set(token);	
+                		context.write(word,one);
+			}				
+            	} 
+	}
     }
 
     public static class TitleCountReduce extends Reducer<Text, IntWritable, Text, IntWritable> {
         @Override
-        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-            // TODO
+	public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+       		// TODO: Aleix Penella
+		int sum = 0;
+		// count each item
+		for ( IntWritable iw: values ){
+			sum += iw.get(); 
+		}
+		context.write(key, new IntWritable(sum));	
         }
     }
 
     public static class TopTitlesStatMap extends Mapper<Text, Text, NullWritable, TextArrayWritable> {
         Integer N;
-        // TODO
+	// TODO: Aleix Penella
+	private TreeSet<Pair<Integer, String>> countTopTitlesMap = new TreeSet<Pair<Integer, String>>();
 
         @Override
         protected void setup(Context context) throws IOException,InterruptedException {
@@ -149,18 +173,31 @@ public class TopTitleStatistics extends Configured implements Tool {
 
         @Override
         public void map(Text key, Text value, Context context) throws IOException, InterruptedException {
-            // TODO
-        }
+		// TODO: Aleix Penella
+		Integer count = Integer.parseInt(value.toString());
+		String word = key.toString();
+		countTopTitlesMap.add( new Pair<Integer, String>(count, word));
+
+		if (countTopTitlesMap.size() > this.N) {
+			countTopTitlesMap.remove(countTopTitlesMap.first());
+		}
+	}
 
         @Override
         protected void cleanup(Context context) throws IOException, InterruptedException {
-            // TODO
-        }
+ 		// TODO: Aleix Penella
+		for (Pair<Integer, String> item : countTopTitlesMap) {
+			String[] strings = {item.second, item.first.toString()};
+			TextArrayWritable val = new TextArrayWritable(strings);
+			context.write(NullWritable.get(), val);
+		}        
+	}
     }
 
     public static class TopTitlesStatReduce extends Reducer<NullWritable, TextArrayWritable, Text, IntWritable> {
         Integer N;
-        // TODO
+	// TODO: Aleix Penella
+	private TreeSet<Pair<Integer, String>> countTopTitlesMap = new TreeSet<Pair<Integer, String>>();
 
         @Override
         protected void setup(Context context) throws IOException,InterruptedException {
@@ -170,15 +207,46 @@ public class TopTitleStatistics extends Configured implements Tool {
 
         @Override
         public void reduce(NullWritable key, Iterable<TextArrayWritable> values, Context context) throws IOException, InterruptedException {
-            Integer sum, mean, max, min, var;
+            	Integer sum, mean, max, min, var;
 
-            // TODO
+		// TODO: Aleix Penella
+		sum = new Integer(0);
+		mean = new Integer(0);
+		min = null;
+		max = new Integer(0);
+		var = new Integer(0);
+	
+		for (TextArrayWritable val: values) {
+			Text[] pair= (Text[]) val.toArray();
+			String word = pair[0].toString();
+			Integer count = Integer.parseInt(pair[1].toString());
+			countTopTitlesMap.add( new Pair<Integer, String>(count, word));
+			
+			if (countTopTitlesMap.size() > this.N) {
+				countTopTitlesMap.remove(countTopTitlesMap.first());
+			}
+		}
 
-            context.write(new Text("Mean"), new IntWritable(mean));
-            context.write(new Text("Sum"), new IntWritable(sum));
-            context.write(new Text("Min"), new IntWritable(min));
-            context.write(new Text("Max"), new IntWritable(max));
-            context.write(new Text("Var"), new IntWritable(var));
+		for (Pair<Integer, String> item: countTopTitlesMap) {
+			sum+= item.first;
+			if ( min == null ) min = new Integer(item.first);
+			else { if ( min > item.first) min = item.first; }
+
+			if ( max < item.first ) max = item.first;
+
+		}
+		mean = sum / this.N;
+
+		for (Pair<Integer, String> item: countTopTitlesMap) {
+			var += (item.first-mean)*(item.first-mean);
+		}
+		var /= this.N;	
+ 
+            	context.write(new Text("Mean"), new IntWritable(mean));
+            	context.write(new Text("Sum"), new IntWritable(sum));
+            	context.write(new Text("Min"), new IntWritable(min));
+            	context.write(new Text("Max"), new IntWritable(max));
+            	context.write(new Text("Var"), new IntWritable(var));
         }
     }
 
