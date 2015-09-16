@@ -158,7 +158,9 @@ public class OrphanPages extends Configured implements Tool {
 		for ( IntWritable link: values ){
 			sum += link.get(); 
 		}
-		context.write(new IntWritable(sum),key);	
+		if ( sum == 0 ){
+			context.write(key, new IntWritable(sum));
+		}	
         }
     }
 
@@ -174,9 +176,7 @@ public class OrphanPages extends Configured implements Tool {
         @Override
         public void map(Text key, Text values, Context context) throws IOException, InterruptedException {
         	//TODO: Aleix Penella
-		if (new IntWritable(Integer.parseInt(key.toString())).equals(new IntWritable(0))){
-			context.write(new IntWritable(Integer.parseInt(values.toString())), new IntWritable(Integer.parseInt(key.toString())));
-		}	
+		context.write(new IntWritable(Integer.parseInt(key.toString())), new IntWritable(Integer.parseInt(values.toString())));
         }
     }
     // JobB: Reduce OrphanPages
