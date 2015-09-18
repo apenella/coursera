@@ -50,44 +50,152 @@ public class TopPopularLinks extends Configured implements Tool {
 
     @Override
     public int run(String[] args) throws Exception {
-        // TODO
+	//TODO: Aleix Penella
+	Configuration conf = this.getConf();
+	FileSystem fs = FileSystem.get(conf);
+        Path tmpPath = new Path("/mp2/tmp");
+        fs.delete(tmpPath, true);
+
+	//delete the output folder
+        fs.delete(new Path(args[1]), true);
+
+	Job jobA = Job.getInstance(this.getConf(), "Link Count");
+	jobA.setOutputKeyClass(IntWritable.class);
+        jobA.setOutputValueClass(IntWritable.class);
+
+	jobA.setMapperClass(LinkCountMap.class);
+        jobA.setReducerClass(LinkCountReduce.class);
+
+	FileInputFormat.setInputPaths(jobA, new Path(args[0]));
+        FileOutputFormat.setOutputPath(jobA, tmpPath);
+
+	jobA.setJarByClass(TopPopularLinks.class);
+        jobA.waitForCompletion(true);
+
+	Job jobB = Job.getInstance(conf, "Top Links");
+        jobB.setOutputKeyClass(IntWritable.class);
+        jobB.setOutputValueClass(IntWritable.class);
+
+        jobB.setMapOutputKeyClass(NullWritable.class);
+        jobB.setMapOutputValueClass(IntArrayWritable.class);
+
+        jobB.setMapperClass(TopLinksMap.class);
+        jobB.setReducerClass(TopLinksReduce.class);
+        jobB.setNumReduceTasks(1);
+
+        FileInputFormat.setInputPaths(jobB, tmpPath);
+        FileOutputFormat.setOutputPath(jobB, new Path(args[1]));
+
+        jobB.setInputFormatClass(KeyValueTextInputFormat.class);
+        jobB.setOutputFormatClass(TextOutputFormat.class);
+
+        jobB.setJarByClass(TopPopularLinks.class);
+        return jobB.waitForCompletion(true) ? 0 : 1;
     }
 
     public static class LinkCountMap extends Mapper<Object, Text, IntWritable, IntWritable> {
-        // TODO
+	//TODO: Aleix Penella
+
+	@Override
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+		String token = new String();
+		IntWritable one = new IntWritable(1);
+		IntWritable zero = new IntWritable(0);
+		
+		StringTokenizer pageLinks = new StringTokenizer(value.toString(),":");
+		//get the page id
+		if (pageLinks.hasMoreTokens()){
+			context.write(new IntWritable(Integer.parseInt(pageLinks.nextToken())),zero);
+			// get the page's links 	
+			if (pageLinks.hasMoreTokens()){
+				StringTokenizer links = new StringTokenizer(pageLinks.nextToken());
+				while (links.hasMoreTokens()) {
+					context.write(new IntWritable(Integer.parseInt(links.nextToken())),one);
+     				}
+			}
+		}
+	}
     }
 
     public static class LinkCountReduce extends Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
-        // TODO
+	//TODO: Aleix Penella
+	@Override
+        public void reduce(IntWritable key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+		int sum = 0;
+		for ( IntWritable link: values ){
+			sum += link.get(); 
+		}
+		context.write(key, new IntWritable(sum));
+	}
     }
 
     public static class TopLinksMap extends Mapper<Text, Text, NullWritable, IntArrayWritable> {
         Integer N;
+	// TODO: Aleix Penella
+	private TreeSet<Pair<Integer, Integer>> countTopLinksMap = new TreeSet<Pair<Integer, Integer>>();
+
 
         @Override
         protected void setup(Context context) throws IOException,InterruptedException {
             Configuration conf = context.getConfiguration();
             this.N = conf.getInt("N", 10);
         }
-        // TODO
+        // TODO: Aleix Penella
+	public void map(Text key, Text value, Context context) throws IOException, InterruptedException {
+		Integer page = Integer.parseInt(key.toString());
+		Integer links = Integer.parseInt(value.toString());
+		countTopLinksMap.add(new Pair<Integer,Integer>(links,page));
+
+		if ( countTopLinksMap.size() > this.N ){
+			countTopLinksMap.remove(countTopLinksMap.first());
+		}
+	}
+
+	protected void cleanup(Context context) throws IOException, InterruptedException {
+            // TODO: Aleix Penella
+		for (Pair<Integer, Integer> item : countTopLinksMap) {
+			Integer[] tuple = {item.second, item.first};
+			IntArrayWritable val = new IntArrayWritable(tuple);
+			context.write(NullWritable.get(), val);
+		}
+        }
     }
 
     public static class TopLinksReduce extends Reducer<NullWritable, IntArrayWritable, IntWritable, IntWritable> {
         Integer N;
+	// TODO: Aleix Penella
+	private TreeSet<Pair<Integer,Integer>> countTopLinksMap = new TreeSet<Pair<Integer, Integer>>();
 
         @Override
         protected void setup(Context context) throws IOException,InterruptedException {
             Configuration conf = context.getConfiguration();
             this.N = conf.getInt("N", 10);
         }
-        // TODO
-    }
+	// TODO: Aleix Penella
+	public void reduce(NullWritable key, Iterable<IntArrayWritable> values, Context context) throws IOException, InterruptedException {
+        	// TODO: Aleix Penella
+		for (IntArrayWritable val: values) {
+			IntWritable[] pair= (IntWritable[]) val.toArray();
+			Integer page = Integer.parseInt(pair[0].toString());
+			Integer links = Integer.parseInt(pair[1].toString());
+			countTopLinksMap.add( new Pair<Integer, Integer>(links, page));
+			
+			if (countTopLinksMap.size() > 10) {
+				countTopLinksMap.remove(countTopLinksMap.first());
+			}
+		}
+
+		for (Pair<Integer, Integer> item: countTopLinksMap) {
+			IntWritable page = new IntWritable(item.second);
+			IntWritable links = new IntWritable(item.first);
+			context.write(page, links);
+		}
+        }
+    } 
 }
 
 // >>> Don't Change
-class Pair<A extends Comparable<? super A>,
-        B extends Comparable<? super B>>
-        implements Comparable<Pair<A, B>> {
+class Pair<A extends Comparable<? super A>, B extends Comparable<? super B>> implements Comparable<Pair<A, B>> {
 
     public final A first;
     public final B second;
@@ -97,9 +205,7 @@ class Pair<A extends Comparable<? super A>,
         this.second = second;
     }
 
-    public static <A extends Comparable<? super A>,
-            B extends Comparable<? super B>>
-    Pair<A, B> of(A first, B second) {
+    public static <A extends Comparable<? super A>, B extends Comparable<? super B>> Pair<A, B> of(A first, B second) {
         return new Pair<A, B>(first, second);
     }
 
@@ -124,8 +230,7 @@ class Pair<A extends Comparable<? super A>,
             return false;
         if (this == obj)
             return true;
-        return equal(first, ((Pair<?, ?>) obj).first)
-                && equal(second, ((Pair<?, ?>) obj).second);
+        return equal(first, ((Pair<?, ?>) obj).first) && equal(second, ((Pair<?, ?>) obj).second);
     }
 
     private boolean equal(Object o1, Object o2) {
