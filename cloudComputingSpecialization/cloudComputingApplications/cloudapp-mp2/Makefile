@@ -8,7 +8,7 @@ HADOOP=hadoop
 all: hadoop
 
 hadoop: jar
-	$(HADOOP) jar $(EXERCISE).jar $(EXERCISE) -D stopwords=/mp2/misc/stopwords.txt -D delimiters=/mp2/misc/delimiters.txt $(INPUT) $(OUTPUT) 
+	$(HADOOP) jar $(EXERCISE).jar $(EXERCISE) -D N=5 -D league=/mp2/misc/league.txt -D stopwords=/mp2/misc/stopwords.txt -D delimiters=/mp2/misc/delimiters.txt $(INPUT) $(OUTPUT) 
 
 jar: comp
 	$(JAR) -cvf $(EXERCISE).jar -C $(EXERCISE)/ ./
