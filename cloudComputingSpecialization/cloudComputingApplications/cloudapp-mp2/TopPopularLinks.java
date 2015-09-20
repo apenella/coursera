@@ -180,7 +180,7 @@ public class TopPopularLinks extends Configured implements Tool {
 			Integer links = Integer.parseInt(pair[1].toString());
 			countTopLinksMap.add( new Pair<Integer, Integer>(links, page));
 			
-			if (countTopLinksMap.size() > 10) {
+			if (countTopLinksMap.size() > this.N) {
 				countTopLinksMap.remove(countTopLinksMap.first());
 			}
 		}

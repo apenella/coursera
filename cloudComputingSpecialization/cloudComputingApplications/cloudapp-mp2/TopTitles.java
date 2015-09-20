@@ -111,9 +111,6 @@ public class TopTitles extends Configured implements Tool {
         List<String> stopWords;
         String delimiters;
 
-	//Aleix Penella: word
-	Text word = new Text();
-
         @Override
         protected void setup(Context context) throws IOException,InterruptedException {
 
@@ -140,8 +137,7 @@ public class TopTitles extends Configured implements Tool {
 			token = itr.nextToken().toLowerCase().trim();
 			//if the token does not set as a stop word, it will be set as a word
 			if (!this.stopWords.contains((Object)token)) {
-				word.set(token);	
-                		context.write(word,one);
+                		context.write(new Text(token),one);
 			}				
             	} 
 	}
@@ -154,8 +150,8 @@ public class TopTitles extends Configured implements Tool {
        		// TODO: Aleix Penella
 		int sum = 0;
 		// count each item
-		for ( IntWritable iw: values ){
-			sum += iw.get(); 
+		for ( IntWritable val: values ){
+			sum += val.get(); 
 		}
 		context.write(key, new IntWritable(sum));	
         }
@@ -215,7 +211,7 @@ public class TopTitles extends Configured implements Tool {
 			Integer count = Integer.parseInt(pair[1].toString());
 			countTopTitlesMap.add( new Pair<Integer, String>(count, word));
 			
-			if (countTopTitlesMap.size() > 10) {
+			if (countTopTitlesMap.size() > this.N) {
 				countTopTitlesMap.remove(countTopTitlesMap.first());
 			}
 		}
