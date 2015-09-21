@@ -136,6 +136,10 @@ public class PopularityLeague extends Configured implements Tool {
             Configuration conf = context.getConfiguration();
             String defLeaguePath = conf.get("league");
             this.league = Arrays.asList(readHDFSFile(defLeaguePath, conf).split("\n"));
+	
+		while( this.league.size() > 15){
+			this.league.remove(this.league.size()-1);
+		}
 	}
 
 	@Override
@@ -171,13 +175,18 @@ public class PopularityLeague extends Configured implements Tool {
 			Integer links = Integer.parseInt(pair[0].toString());
 			Integer page = Integer.parseInt(pair[1].toString());
 
-			countTopLinksMap.add(new Pair<Integer,Integer>(links,page));
+			countTopLinksMap.add(new Pair<Integer,Integer>(page,links));
 		}
-	
-		int pos = 0;
-		for ( Pair<Integer,Integer> tuple: countTopLinksMap ) {
-			context.write(new IntWritable(tuple.second),new IntWritable(pos));
-			pos++;	
+		
+		int pos = 0;	
+		for ( Pair<Integer,Integer> page: countTopLinksMap ) {
+			for ( Pair<Integer,Integer> otherpage: countTopLinksMap ) {
+				if ( page.first != otherpage.first && page.second > otherpage.second){
+					pos++;	
+				}
+			}
+			context.write(new IntWritable(page.first),new IntWritable(pos));
+			pos = 0;
 		}	 	
    	} 
     }
