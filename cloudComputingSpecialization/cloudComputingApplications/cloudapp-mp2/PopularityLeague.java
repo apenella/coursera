@@ -137,7 +137,7 @@ public class PopularityLeague extends Configured implements Tool {
             String defLeaguePath = conf.get("league");
             this.league = Arrays.asList(readHDFSFile(defLeaguePath, conf).split("\n"));
 	
-		while( this.league.size() > 15){
+		while( this.league.size() >= 16){
 			this.league.remove(this.league.size()-1);
 		}
 	}
