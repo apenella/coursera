@@ -16,6 +16,9 @@ public class FileReaderSpout implements IRichSpout {
   private SpoutOutputCollector _collector;
   private TopologyContext context;
 
+  private String filename = "data.txt";
+  private BufferedReader fspout;
+  private boolean fileread = false;
 
   @Override
   public void open(Map conf, TopologyContext context,
@@ -27,6 +30,12 @@ public class FileReaderSpout implements IRichSpout {
 
 
     ------------------------------------------------- */
+    try {
+    	this.fspout = new BufferedReader(new FileReader(filename));
+    } catch (FileNotFoundException e) {
+	e.printStackTrace();
+	System.exit(1);
+    }
 
     this.context = context;
     this._collector = collector;
@@ -43,7 +52,25 @@ public class FileReaderSpout implements IRichSpout {
 
     ------------------------------------------------- */
 
+    String line;
 
+
+    try {
+   	if (!fileread) {
+    		while ((line = this.fspout.readLine()) != null) {
+			this._collector.emit(new Values(line));
+    		}
+
+	} else {
+		try {
+			Thread.sleep(1000);
+		} catch (Exception e){}
+	}
+
+    } catch (Exception e) {
+	e.printStackTrace();
+	System.exit(1);
+    }    
   }
 
   @Override
@@ -61,6 +88,12 @@ public class FileReaderSpout implements IRichSpout {
 
 
     ------------------------------------------------- */
+
+    try {
+	this.fspout.close();
+    } catch (Exception e) {
+	e.printStackTrace();
+    }
 
   }
 
