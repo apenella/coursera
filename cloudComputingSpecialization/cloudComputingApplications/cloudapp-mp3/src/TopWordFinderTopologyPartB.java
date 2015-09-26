@@ -22,6 +22,7 @@ public class TopWordFinderTopologyPartB {
 
     Config config = new Config();
     config.setDebug(true);
+    config.put("filespout",args[0]);
 
 
     /*

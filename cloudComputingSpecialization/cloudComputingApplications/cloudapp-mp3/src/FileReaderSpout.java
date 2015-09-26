@@ -31,7 +31,7 @@ public class FileReaderSpout implements IRichSpout {
 
     ------------------------------------------------- */
     try {
-    	this.fspout = new BufferedReader(new FileReader(filename));
+    	this.fspout = new BufferedReader(new FileReader(conf.get("filespout").toString()));
     } catch (FileNotFoundException e) {
 	e.printStackTrace();
 	System.exit(1);
@@ -60,7 +60,6 @@ public class FileReaderSpout implements IRichSpout {
     		while ((line = this.fspout.readLine()) != null) {
 			this._collector.emit(new Values(line));
     		}
-
 	} else {
 		try {
 			Thread.sleep(1000);
