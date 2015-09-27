@@ -36,12 +36,18 @@ public class TopWordFinderTopologyPartD {
     FileReaderSpout -> "spout"
     SplitSentenceBolt -> "split"
     WordCountBolt -> "count"
-	NormalizerBolt -> "normalize"
+    NormalizerBolt -> "normalize"
     TopNFinderBolt -> "top-n"
 
 
     ------------------------------------------------- */
+    config.put("filespout",args[0]);
 
+    builder.setSpout("spout", new FileReaderSpout(),1);
+    builder.setBolt("split", new SplitSentenceBolt(),5).shuffleGrouping("spout");
+    builder.setBolt("normalize", new NormalizerBolt(),5).shuffleGrouping("split");
+    builder.setBolt("count", new WordCountBolt()).fieldsGrouping("normalize", new Fields("word"));
+    builder.setBolt("top-n", new TopNFinderBolt(10)).fieldsGrouping("count", new Fields("word"));
 
     config.setMaxTaskParallelism(3);
 

@@ -6,6 +6,13 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
 import java.util.HashMap;
+import java.util.Set;
+import java.util.Map.Entry;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Collections;
+
 
 /**
  * a bolt that finds the top n words.
@@ -29,7 +36,28 @@ public class TopNFinderBolt extends BaseBasicBolt {
 
 
     ------------------------------------------------- */
+    currentTopWords.put(tuple.getString(0),tuple.getInteger(1));
+    Set<Entry<String,Integer>> setCurrentTopWords = currentTopWords.entrySet();
+    List<Entry<String, Integer>> sortedTopNWords = new ArrayList<Entry<String, Integer>>(setCurrentTopWords);
 
+    Collections.sort(sortedTopNWords, new Comparator<Entry<String, Integer>>() {
+        public int compare(Entry<String, Integer> o1, Entry<String, Integer> o2) {
+       		if ((o1.getValue()).equals(o2.getValue())){
+                    return (o1.getKey()).compareTo( o2.getKey() );
+                } else {
+                    return (o2.getValue()).compareTo( o1.getValue() );
+                } 
+	}
+    });
+
+    if ( sortedTopNWords.size() > this.N ) {
+	sortedTopNWords.remove(sortedTopNWords.size()-1);
+    	currentTopWords.clear();
+
+	for ( Entry<String, Integer> item: sortedTopNWords ) {
+		currentTopWords.put(item.getKey(),item.getValue());
+	}
+    }
 
     //reports the top N words periodically
     if (System.currentTimeMillis() - lastReportTime >= intervalToReport) {
