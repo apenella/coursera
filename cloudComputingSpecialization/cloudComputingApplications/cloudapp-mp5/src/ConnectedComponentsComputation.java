@@ -25,6 +25,47 @@ public class ConnectedComponentsComputation extends
   public void compute(
       Vertex<IntWritable, IntWritable, NullWritable> vertex,
       Iterable<IntWritable> messages) throws IOException {
-      //TODO
+      //TODO: Aleix Penella
+
+	int currentComponent = vertex.getValue().get();
+
+	// First superstep is special, because we can simply look at the neighbors
+	if (getSuperstep() == 0) {
+		for (Edge<IntWritable, NullWritable> edge : vertex.getEdges()) {
+			int neighbor = edge.getTargetVertexId().get();
+			if (neighbor < currentComponent) {
+				currentComponent = neighbor;
+			}
+		}
+
+		if (currentComponent != vertex.getValue().get() ) {
+			vertex.setValue(new IntWritable(currentComponent));
+			for (Edge<IntWritable, NullWritable> edge : vertex.getEdges()){
+				IntWritable neighbor = edge.getTargetVertexId();
+				if (neighbor.get() > currentComponent) {
+					sendMessage(neighbor, vertex.getValue());
+				}
+	
+			}
+		}
+		vertex.voteToHalt();
+		return;
+	}
+
+	boolean changed = false ;
+	for (IntWritable message : messages) {
+		int candidateComponent = message.get();
+		if (candidateComponent < currentComponent) {
+			currentComponent = candidateComponent;
+			changed = true;
+		}
+	}
+
+	if (changed) {
+		vertex.setValue( new IntWritable(currentComponent));
+		sendMessageToAllEdges(vertex, vertex.getValue());
+	}
+	vertex.voteToHalt();
   }
+//end
 }
