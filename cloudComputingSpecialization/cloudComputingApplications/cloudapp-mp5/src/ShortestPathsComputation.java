@@ -28,8 +28,40 @@ public class ShortestPathsComputation extends BasicComputation<
   }
 
   @Override
-  public void compute(
-      Vertex<IntWritable, IntWritable, NullWritable> vertex,
-      Iterable<IntWritable> messages) throws IOException {
+  public void compute( Vertex<IntWritable, IntWritable, NullWritable> vertex, Iterable<IntWritable> messages) throws IOException {
+
+	if (getSuperstep() == 0) {
+    		// initially, no node is reachable
+    		vertex.setValue(new IntWritable(Integer.MAX_VALUE));
+  	}
+  
+  	Integer minDist = isSource(vertex) ? new Integer(0) : Integer.MAX_VALUE;
+  	// check the incoming messages 
+  	// and collect the minimal distance
+  	// (for the source this will be always 0)
+  	for (IntWritable message : messages) {
+    		minDist = Math.min(minDist, message.get());
+  	}
+  
+  	// check if the new minimal distance is smaller 
+  	// than the original one (Double.MAX_VALUE initially)
+  	// this will be in the beginning only true for 
+  	// the source vector since its distance is always 0
+  	if (minDist < vertex.getValue().get()) {
+    		vertex.setValue(new IntWritable(minDist));
+    		for (Edge<IntWritable, NullWritable> edge : vertex.getEdges()) {
+      			// send a message to all neighbours with 
+      			// the current distance from the source vector
+      			// + the distance to the neighbour
+      			//int distance = minDist + edge.getValue().get();
+      			int distance = minDist + 1;
+      			sendMessage(edge.getTargetVertexId(), new IntWritable(distance));
+    		}
+  	}
+  
+  	// task is finished, until new messages will arrive
+  	// in this case the vertex will be woken up again
+  	vertex.voteToHalt();
+
   }
 }
